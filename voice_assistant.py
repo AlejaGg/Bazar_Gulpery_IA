@@ -157,12 +157,6 @@ class VoiceAssistant:
                         if variant in text_normalizado or \
                            any(palabra == variant for palabra in text_normalizado.split()):
                             keyword_detected = True
-                    # Buscar cualquier variante de la keyword
-                    keyword_detected = False
-                    for variant in keyword_variants:
-                        if variant in text_normalizado or \
-                           any(palabra == variant for palabra in text_normalizado.split()):
-                            keyword_detected = True
                             logger.info(f"🎯 Palabra clave detectada! Texto: '{text}' | Variante: '{variant}'")
                             break
                     
