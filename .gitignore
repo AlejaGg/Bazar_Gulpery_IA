@@ -1,0 +1,132 @@
+# ============================================================================
+# .gitignore para Sistema POS con IA
+# ============================================================================
+
+# ==================== PYTHON ====================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# ==================== MODELOS Y DATASETS ====================
+# Modelos entrenados (excepto best.pt que ya está en el proyecto)
+runs/
+yolo_training/
+*.weights
+*.onnx
+*.tflite
+*.pb
+
+# Datasets descargados
+My-First-Project-2/
+datasets/
+*.zip
+*.tar.gz
+
+# ==================== BASE DE DATOS ====================
+# Dumps y backups de BD
+*.sql
+*.dump
+*.backup
+backups/
+
+# ==================== LOGS Y TEMPORALES ====================
+# Logs
+*.log
+logs/
+
+# Temporales
+*.tmp
+*.temp
+*.cache
+
+# ==================== IDE Y EDITORES ====================
+# VS Code
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb
+
+# ==================== SISTEMA OPERATIVO ====================
+# Windows
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+
+# ==================== CONFIGURACIÓN SENSIBLE ====================
+# Variables de entorno
+.env
+.env.local
+.env.production
+
+# Archivos de configuración privados
+config_private.py
+secrets.py
+credentials.json
+
+# ==================== MULTIMEDIA ====================
+# Videos y grabaciones de prueba
+*.mp4
+*.avi
+*.mov
+test_videos/
+recordings/
+
+# Imágenes de prueba (mantener algunas de ejemplo)
+test_images/
+*.jpg
+*.jpeg
+*.png
+!example.png
+
+# ==================== OTROS ====================
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
