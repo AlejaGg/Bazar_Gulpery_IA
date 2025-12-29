@@ -44,9 +44,10 @@ yolo_training/
 *.tflite
 *.pb
 
-# Datasets descargados
+# Datasets descargados (dataset local ya descargado, no subir)
 My-First-Project-2/
 datasets/
+dataset/
 *.zip
 *.tar.gz
 

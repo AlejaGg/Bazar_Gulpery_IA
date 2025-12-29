@@ -1,49 +1,46 @@
 """
 Script de Entrenamiento del Modelo YOLOv11
-Descarga el dataset de Roboflow y entrena el modelo
+Entrena el modelo usando el dataset local
 
 Ejecutar en Google Colab o entorno con GPU:
     python train_model.py
 """
 
-from roboflow import Roboflow
 from ultralytics import YOLO
 import logging
-from config import ROBOFLOW_CONFIG, TRAINING_CONFIG
+import os
+from pathlib import Path
+from config import TRAINING_CONFIG
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def download_dataset():
+def get_dataset_path():
     """
-    Descarga el dataset desde Roboflow
+    Obtiene la ruta al dataset local
     
     Returns:
         Ruta al archivo data.yaml
     """
-    logger.info("📥 Descargando dataset desde Roboflow...")
+    logger.info("📁 Usando dataset local...")
     
     try:
-        # Inicializar Roboflow
-        rf = Roboflow(api_key=ROBOFLOW_CONFIG['api_key'])
+        # Ruta al dataset local
+        dataset_dir = Path(__file__).parent / 'dataset'
+        data_yaml_path = dataset_dir / 'data.yaml'
         
-        # Obtener proyecto
-        project = rf.workspace(ROBOFLOW_CONFIG['workspace']).project(
-            ROBOFLOW_CONFIG['project']
-        )
+        if not data_yaml_path.exists():
+            raise FileNotFoundError(
+                f"❌ No se encontró el archivo data.yaml en: {data_yaml_path}\n"
+                f"Asegúrate de que la carpeta 'dataset' contenga el dataset descargado."
+            )
         
-        # Descargar versión específica
-        dataset = project.version(ROBOFLOW_CONFIG['version']).download("yolov11")
-        
-        logger.info(f"✅ Dataset descargado en: {dataset.location}")
-        
-        # Retornar ruta al data.yaml
-        data_yaml_path = f"{dataset.location}/data.yaml"
-        return data_yaml_path
+        logger.info(f"✅ Dataset encontrado en: {dataset_dir}")
+        return str(data_yaml_path)
         
     except Exception as e:
-        logger.error(f"❌ Error al descargar dataset: {e}")
+        logger.error(f"❌ Error al acceder al dataset: {e}")
         raise
 
 
@@ -111,8 +108,8 @@ def main():
     logger.info("=" * 60 + "\n")
     
     try:
-        # 1. Descargar dataset
-        data_yaml_path = download_dataset()
+        # 1. Obtener ruta del dataset local
+        data_yaml_path = get_dataset_path()
         
         # 2. Entrenar modelo
         train_model(data_yaml_path)

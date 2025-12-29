@@ -64,14 +64,6 @@ UI_CONFIG = {
     'cart_position': (10, 50)
 }
 
-# ==================== CONFIGURACIÓN DE ROBOFLOW ====================
-ROBOFLOW_CONFIG = {
-    'api_key': 'vxVrVEeW04cCPGwwCTod',
-    'workspace': 'bazarmg',
-    'project': 'my-first-project-fiobt',
-    'version': 2
-}
-
 # ==================== CONFIGURACIÓN DE ENTRENAMIENTO ====================
 TRAINING_CONFIG = {
     'base_model': 'yolov8n.pt',
