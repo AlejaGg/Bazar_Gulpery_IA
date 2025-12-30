@@ -208,8 +208,7 @@ class VideoCapture:
         """
         self.source = source
         self.cap = None
-        self.reconnect_attempts = 0
-        self.max_reconnect_attempts = 5
+        self.is_waiting_connection = False
         
         self._initialize_capture()
     
@@ -218,11 +217,74 @@ class VideoCapture:
         try:
             self.cap = cv2.VideoCapture(self.source)
             if not self.cap.isOpened():
-                raise Exception("No se pudo abrir la fuente de video")
-            logger.info(f"✅ Captura de video inicializada: {self.source}")
+                self.is_waiting_connection = True
+                logger.warning(f"⚠️ Esperando conexión con cámara: {self.source}")
+            else:
+                self.is_waiting_connection = False
+                logger.info(f"✅ Captura de video inicializada: {self.source}")
         except Exception as e:
-            logger.error(f"❌ Error al inicializar captura: {e}")
-            raise
+            self.is_waiting_connection = True
+            logger.warning(f"⚠️ Esperando conexión con cámara: {e}")
+    
+    def _create_waiting_frame(self) -> np.ndarray:
+        """Crea un frame de espera con instrucciones"""
+        frame = np.zeros((720, 1280, 3), dtype=np.uint8)
+        
+        # Fondo con degradado
+        for i in range(720):
+            color = int(30 + (i / 720) * 20)
+            cv2.line(frame, (0, i), (1280, i), (color, color, color+5), 1)
+        
+        # Banner superior
+        cv2.rectangle(frame, (0, 0), (1280, 100), (50, 50, 80), -1)
+        cv2.rectangle(frame, (0, 95), (1280, 105), (255, 150, 0), -1)
+        
+        # Título
+        cv2.putText(frame, "ESPERANDO CONEXION CON CAMARA", (280, 65),
+                   cv2.FONT_HERSHEY_DUPLEX, 1.3, (255, 200, 100), 3, cv2.LINE_AA)
+        
+        # Icono de cámara (simulado)
+        center_x, center_y = 640, 250
+        cv2.circle(frame, (center_x, center_y), 80, (100, 100, 150), 5)
+        cv2.circle(frame, (center_x, center_y), 50, (100, 100, 150), 3)
+        cv2.line(frame, (center_x - 30, center_y - 100), (center_x + 30, center_y - 100), (100, 100, 150), 5)
+        cv2.rectangle(frame, (center_x - 40, center_y - 105), (center_x + 40, center_y - 95), (100, 100, 150), -1)
+        
+        # Animación de puntos (simulada con tiempo)
+        import time
+        dots = "." * (int(time.time() * 2) % 4)
+        cv2.putText(frame, f"Conectando{dots}   ", (520, 360),
+                   cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 200, 100), 2, cv2.LINE_AA)
+        
+        # Caja de instrucciones
+        box_y = 420
+        cv2.rectangle(frame, (200, box_y), (1080, box_y + 250), (40, 40, 60), -1)
+        cv2.rectangle(frame, (200, box_y), (1080, box_y + 250), (255, 150, 0), 3)
+        
+        # Título de instrucciones
+        cv2.putText(frame, "INSTRUCCIONES:", (240, box_y + 40),
+                   cv2.FONT_HERSHEY_DUPLEX, 0.9, (255, 200, 100), 2, cv2.LINE_AA)
+        
+        # Instrucciones paso a paso
+        instructions = [
+            "1. Abra la aplicacion IP Webcam en su dispositivo movil",
+            "2. Toque 'Iniciar Servidor' en la aplicacion",
+            "3. Verifique que este conectado a la misma red Wi-Fi",
+            "4. Confirme la direccion IP mostrada en la app",
+            f"5. URL esperada: {self.source}"
+        ]
+        
+        y_offset = box_y + 75
+        for instruction in instructions:
+            cv2.putText(frame, instruction, (240, y_offset),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1, cv2.LINE_AA)
+            y_offset += 35
+        
+        # Mensaje de escape
+        cv2.putText(frame, "Presione ESC para salir", (490, 690),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.7, (150, 150, 150), 2, cv2.LINE_AA)
+        
+        return frame
     
     def read(self) -> Tuple[bool, np.ndarray]:
         """
@@ -231,18 +293,23 @@ class VideoCapture:
         Returns:
             Tupla (success, frame)
         """
-        if not self.cap or not self.cap.isOpened():
-            if self.reconnect_attempts < self.max_reconnect_attempts:
-                logger.warning("⚠️ Intentando reconectar...")
-                self.reconnect_attempts += 1
-                self._initialize_capture()
-            else:
-                return False, None
+        # Si no hay conexión, intentar reconectar
+        if self.is_waiting_connection or not self.cap or not self.cap.isOpened():
+            # Intentar reconectar
+            if self.cap:
+                self.cap.release()
+            self._initialize_capture()
+            
+            # Si todavía no hay conexión, devolver frame de espera
+            if self.is_waiting_connection:
+                return True, self._create_waiting_frame()
         
         ret, frame = self.cap.read()
         
-        if ret:
-            self.reconnect_attempts = 0  # Reset contador si lectura exitosa
+        # Si falla la lectura, marcar como esperando conexión
+        if not ret:
+            self.is_waiting_connection = True
+            return True, self._create_waiting_frame()
         
         return ret, frame
     

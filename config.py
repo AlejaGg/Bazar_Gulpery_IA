@@ -67,7 +67,7 @@ UI_CONFIG = {
 # ==================== CONFIGURACIÓN DE ENTRENAMIENTO ====================
 TRAINING_CONFIG = {
     'base_model': 'yolov8n.pt',
-    'epochs': 250,
+    'epochs': 200,
     'batch_size': 16,
     'img_size': 640,
     'data_yaml': '/content/My-First-Project-2/data.yaml'

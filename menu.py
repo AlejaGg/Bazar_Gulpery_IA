@@ -36,50 +36,109 @@ class MenuPrincipal:
         # Crear ventana
         window_name = "Bazar Gulpery - Menu Principal"
         cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-        cv2.resizeWindow(window_name, 800, 600)
+        cv2.resizeWindow(window_name, 900, 700)
         
         while self.ventana_activa and self.seleccion is None:
-            # Crear frame negro
-            frame = np.zeros((600, 800, 3), dtype=np.uint8)
+            # Crear frame con degradado
+            frame = np.zeros((700, 900, 3), dtype=np.uint8)
             
-            # Título
-            cv2.putText(frame, "BAZAR GULPERY", (180, 100),
-                       cv2.FONT_HERSHEY_DUPLEX, 1.8, (255, 255, 255), 3, cv2.LINE_AA)
-            cv2.putText(frame, "Sistema POS con IA", (220, 150),
-                       cv2.FONT_HERSHEY_DUPLEX, 1.0, (150, 150, 150), 2, cv2.LINE_AA)
+            # Fondo degradado sutil
+            for i in range(700):
+                color = int(20 + (i / 700) * 30)
+                cv2.line(frame, (0, i), (900, i), (color, color, color+10), 1)
             
-            # Línea decorativa
-            cv2.line(frame, (100, 180), (700, 180), (0, 255, 0), 2)
+            # Banner superior decorativo
+            cv2.rectangle(frame, (0, 0), (900, 120), (40, 40, 60), -1)
+            cv2.rectangle(frame, (0, 115), (900, 125), (0, 255, 150), -1)
             
-            # Botón ADMIN
-            admin_rect = (150, 250, 300, 120)
-            cv2.rectangle(frame, (admin_rect[0], admin_rect[1]),
-                         (admin_rect[0] + admin_rect[2], admin_rect[1] + admin_rect[3]),
-                         (50, 50, 200), -1)
-            cv2.rectangle(frame, (admin_rect[0], admin_rect[1]),
-                         (admin_rect[0] + admin_rect[2], admin_rect[1] + admin_rect[3]),
-                         (100, 100, 255), 3)
-            cv2.putText(frame, "ADMIN", (220, 325),
-                       cv2.FONT_HERSHEY_DUPLEX, 1.3, (255, 255, 255), 2, cv2.LINE_AA)
-            cv2.putText(frame, "Presiona 'A'", (190, 360),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1, cv2.LINE_AA)
+            # Título principal con sombra
+            cv2.putText(frame, "BAZAR GULPERY", (240, 65),
+                       cv2.FONT_HERSHEY_DUPLEX, 2.0, (30, 30, 30), 5, cv2.LINE_AA)
+            cv2.putText(frame, "BAZAR GULPERY", (235, 60),
+                       cv2.FONT_HERSHEY_DUPLEX, 2.0, (100, 255, 200), 4, cv2.LINE_AA)
             
-            # Botón INICIAR
-            iniciar_rect = (500, 250, 300, 120)
-            cv2.rectangle(frame, (iniciar_rect[0], iniciar_rect[1]),
-                         (iniciar_rect[0] + iniciar_rect[2], iniciar_rect[1] + iniciar_rect[3]),
-                         (50, 200, 50), -1)
-            cv2.rectangle(frame, (iniciar_rect[0], iniciar_rect[1]),
-                         (iniciar_rect[0] + iniciar_rect[2], iniciar_rect[1] + iniciar_rect[3]),
-                         (100, 255, 100), 3)
-            cv2.putText(frame, "INICIAR", (550, 325),
-                       cv2.FONT_HERSHEY_DUPLEX, 1.3, (255, 255, 255), 2, cv2.LINE_AA)
-            cv2.putText(frame, "Presiona 'I'", (545, 360),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1, cv2.LINE_AA)
+            # Subtítulo
+            cv2.putText(frame, "Sistema POS con Inteligencia Artificial", (225, 105),
+                       cv2.FONT_HERSHEY_DUPLEX, 0.9, (180, 180, 180), 2, cv2.LINE_AA)
             
-            # Instrucciones
-            cv2.putText(frame, "Presiona ESC para salir", (270, 500),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (150, 150, 150), 1, cv2.LINE_AA)
+            # Botones centrados
+            btn_width = 320
+            btn_height = 140
+            spacing = 50
+            center_x = 450  # Centro de la ventana (900/2)
+            start_x = center_x - btn_width - spacing // 2
+            btn_y = 270
+            
+            # Botón ADMIN (Izquierdo)
+            admin_x = start_x
+            # Sombra
+            cv2.rectangle(frame, (admin_x + 8, btn_y + 8),
+                         (admin_x + btn_width + 8, btn_y + btn_height + 8),
+                         (20, 20, 20), -1)
+            # Fondo principal
+            cv2.rectangle(frame, (admin_x, btn_y),
+                         (admin_x + btn_width, btn_y + btn_height),
+                         (45, 50, 180), -1)
+            # Borde brillante
+            cv2.rectangle(frame, (admin_x, btn_y),
+                         (admin_x + btn_width, btn_y + btn_height),
+                         (120, 130, 255), 4)
+            # Borde interno
+            cv2.rectangle(frame, (admin_x + 8, btn_y + 8),
+                         (admin_x + btn_width - 8, btn_y + btn_height - 8),
+                         (80, 90, 220), 2)
+            
+            # Texto ADMIN
+            cv2.putText(frame, "ADMIN", (admin_x + 70, btn_y + 65),
+                       cv2.FONT_HERSHEY_DUPLEX, 1.6, (255, 255, 255), 3, cv2.LINE_AA)
+            cv2.putText(frame, "Panel de Control", (admin_x + 55, btn_y + 100),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 200, 200), 2, cv2.LINE_AA)
+            cv2.putText(frame, "Presione  A", (admin_x + 70, btn_y + 130),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (150, 255, 150), 2, cv2.LINE_AA)
+            
+            # Botón INICIAR (Derecho)
+            iniciar_x = start_x + btn_width + spacing
+            # Sombra
+            cv2.rectangle(frame, (iniciar_x + 8, btn_y + 8),
+                         (iniciar_x + btn_width + 8, btn_y + btn_height + 8),
+                         (20, 20, 20), -1)
+            # Fondo principal
+            cv2.rectangle(frame, (iniciar_x, btn_y),
+                         (iniciar_x + btn_width, btn_y + btn_height),
+                         (40, 180, 50), -1)
+            # Borde brillante
+            cv2.rectangle(frame, (iniciar_x, btn_y),
+                         (iniciar_x + btn_width, btn_y + btn_height),
+                         (100, 255, 100), 4)
+            # Borde interno
+            cv2.rectangle(frame, (iniciar_x + 8, btn_y + 8),
+                         (iniciar_x + btn_width - 8, btn_y + btn_height - 8),
+                         (70, 220, 80), 2)
+            
+            # Texto INICIAR
+            cv2.putText(frame, "INICIAR", (iniciar_x + 65, btn_y + 65),
+                       cv2.FONT_HERSHEY_DUPLEX, 1.6, (255, 255, 255), 3, cv2.LINE_AA)
+            cv2.putText(frame, "Sistema POS", (iniciar_x + 75, btn_y + 100),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 200, 200), 2, cv2.LINE_AA)
+            cv2.putText(frame, "Presione  I", (iniciar_x + 80, btn_y + 130),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (150, 255, 150), 2, cv2.LINE_AA)
+            
+            # Decoración inferior
+            cv2.line(frame, (150, 530), (750, 530), (0, 255, 150), 2)
+            
+            # Iconos decorativos
+            cv2.circle(frame, (100, 300), 15, (0, 255, 150), -1)
+            cv2.circle(frame, (800, 300), 15, (0, 255, 150), -1)
+            
+            # Instrucciones de salida
+            cv2.rectangle(frame, (300, 570), (600, 630), (60, 60, 60), -1)
+            cv2.rectangle(frame, (300, 570), (600, 630), (100, 100, 100), 2)
+            cv2.putText(frame, "ESC - Salir del sistema", (335, 607),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 200, 200), 2, cv2.LINE_AA)
+            
+            # Footer
+            cv2.putText(frame, "v2.0 - Sistema Inteligente de Punto de Venta", (280, 680),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (120, 120, 120), 1, cv2.LINE_AA)
             
             cv2.imshow(window_name, frame)
             
