@@ -26,6 +26,7 @@ import time
 import logging
 from typing import Dict
 import threading
+from typing import Optional, Union
 
 # Módulos personalizados
 from config import CAMERA_CONFIG, PRODUCT_CLASSES
@@ -43,13 +44,40 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _normalize_camera_source(user_value: str, default_source: Union[str, int]) -> Union[str, int]:
+    """Normaliza la entrada del usuario a un source válido para OpenCV."""
+    value = (user_value or "").strip()
+    if not value:
+        return default_source
+
+    # Permitir webcam local (ej: 0, 1, 2)
+    if value.isdigit():
+        return int(value)
+
+    # Corregir typo común: "IP::PUERTO" -> "IP:PUERTO"
+    value = value.replace("::", ":")
+
+    # Si ya es URL completa
+    if value.startswith("http://") or value.startswith("https://"):
+        return value
+
+    # Si viene como IP o IP:PUERTO
+    if "/" not in value:
+        # Si el usuario solo ingresa IP, usar puerto 8080 por defecto
+        if ":" not in value:
+            value = f"{value}:8080"
+        return f"http://{value}/video"
+
+    return f"http://{value}"
+
+
 class POSSystem:
     """
     Sistema de Punto de Venta Principal
     Coordina todos los módulos del sistema
     """
     
-    def __init__(self):
+    def __init__(self, camera_source: Optional[Union[str, int]] = None):
         """Inicializa el sistema POS"""
         logger.info("=" * 60)
         logger.info("🚀 Inicializando Sistema de Punto de Venta con IA")
@@ -69,6 +97,9 @@ class POSSystem:
         self.is_running = False
         self.fps = 0.0
         self.current_frame = None  # Frame actual para captura de imágenes
+
+        # Fuente de cámara (si el usuario la especifica al iniciar)
+        self.camera_source = camera_source
         
         # Inicializar componentes
         self._initialize_components()
@@ -84,7 +115,8 @@ class POSSystem:
             
             # 2. Captura de video
             logger.info("📹 Inicializando captura de video...")
-            self.video_capture = VideoCapture(CAMERA_CONFIG['source'])
+            source = self.camera_source if self.camera_source is not None else CAMERA_CONFIG['source']
+            self.video_capture = VideoCapture(source)
             
             # 3. Renderizador UI
             logger.info("🖥️ Configurando interfaz visual...")
@@ -336,6 +368,10 @@ def main():
         # Mostrar menú principal
         menu = MenuPrincipal()
         seleccion = menu.mostrar()
+
+        camera_text = None
+        if isinstance(seleccion, tuple) and len(seleccion) == 2:
+            seleccion, camera_text = seleccion
         
         if seleccion == 'admin':
             # Abrir panel de administración
@@ -345,8 +381,12 @@ def main():
             main()
             
         elif seleccion == 'iniciar':
+            default_source = CAMERA_CONFIG['source']
+            camera_source = _normalize_camera_source(camera_text or "", default_source)
+            logger.info(f"📷 Fuente de cámara seleccionada: {camera_source}")
+
             # Iniciar sistema POS
-            pos_system = POSSystem()
+            pos_system = POSSystem(camera_source=camera_source)
             pos_system.run()
             
         elif seleccion == 'salir':

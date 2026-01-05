@@ -101,22 +101,394 @@ La visión por computadora es un campo de la inteligencia artificial que permite
 
 ### 3.2 Redes Neuronales Convolucionales (CNN)
 
-Las CNN son arquitecturas de deep learning especializadas en procesamiento de imágenes. Características clave:
+Las CNN son arquitecturas de deep learning especializadas en procesamiento de imágenes que revolucionaron el campo de la visión por computadora.
 
-#### Capas Convolucionales
-- **Función:** Extracción de características locales
-- **Operación:** Convolución con kernels aprendibles
-- **Output:** Feature maps de diferentes niveles
+#### 3.2.1 El Problema de las Redes Tradicionales (MLP) con Imágenes
 
-#### Pooling
-- **Función:** Reducción de dimensionalidad
-- **Tipos:** Max pooling, Average pooling
-- **Beneficio:** Invarianza a pequeñas traslaciones
+**Representación de Imágenes como Matrices:**
 
-#### Capas Fully Connected
-- **Función:** Clasificación final
-- **Operación:** Combinación lineal + activación
-- **Output:** Probabilidades por clase
+Una imagen digital es una matriz tridimensional de píxeles:
+- **Dimensiones:** Altura × Ancho × Canales
+- **Ejemplo:** Imagen 640×640 RGB = 640 × 640 × 3 = 1,228,800 píxeles
+- **Rango de valores:** 0-255 por canal (RGB)
+
+```python
+# Representación de imagen como matriz NumPy
+image = np.array([[[255, 0, 0],    # Píxel rojo
+                   [0, 255, 0],    # Píxel verde
+                   [0, 0, 255]]])  # Píxel azul
+# Shape: (1, 3, 3) = altura × ancho × canales
+```
+
+**¿Por qué las Redes MLP (Fully Connected) Fallan con Imágenes?**
+
+**Problema 1: Demasiados Pesos (Parámetros Excesivos)**
+
+```
+Imagen de entrada: 640×640×3 = 1,228,800 píxeles
+Primera capa oculta: 1000 neuronas
+
+Número de pesos = 1,228,800 × 1000 = 1,228,800,000 parámetros
+Solo en la primera capa!
+```
+
+**Consecuencias:**
+- ❌ **Sobreajuste:** Más parámetros que datos de entrenamiento
+- ❌ **Memoria:** Gigabytes de RAM solo para pesos
+- ❌ **Computación:** Entrenamientos extremadamente lentos
+- ❌ **Generalización pobre:** El modelo memoriza en lugar de aprender
+
+**Problema 2: Pérdida de Estructura Espacial**
+
+Las MLP aplanan la imagen en un vector 1D:
+
+```python
+# MLP aplana la imagen
+image_shape = (640, 640, 3)  # Matriz 3D
+flattened = image.flatten()   # Vector 1D de 1,228,800 elementos
+```
+
+**Información perdida:**
+- ❌ **Relaciones espaciales:** Píxeles cercanos están relacionados
+- ❌ **Jerarquía de características:** Bordes → Texturas → Objetos
+- ❌ **Invarianza:** Mismo objeto en diferentes posiciones no se reconoce
+
+**Ejemplo Ilustrativo:**
+
+```
+Imagen original:          Después de flatten():
+[R G B]                   [R, G, B, R, G, B, R, G, B]
+[R G B]          →        
+[R G B]                   ¡Se pierde la estructura espacial!
+```
+
+#### 3.2.2 Cómo las CNN Resuelven estos Problemas: Imitando la Visión Humana
+
+Las CNN se inspiran en el **sistema visual humano**:
+
+1. **Campos Receptivos Locales:** Neuronas que responden a regiones específicas
+2. **Jerarquía de Características:** Bordes → Formas → Objetos completos
+3. **Compartición de Pesos:** Los mismos filtros se reutilizan en toda la imagen
+
+**Ventajas de CNN sobre MLP:**
+
+| Aspecto | MLP | CNN |
+|---------|-----|-----|
+| **Parámetros** | Millones/Billones | Miles |
+| **Estructura espacial** | ❌ Perdida | ✅ Preservada |
+| **Invarianza traslacional** | ❌ No | ✅ Sí |
+| **Eficiencia** | ❌ Baja | ✅ Alta |
+| **Rendimiento en imágenes** | ❌ Pobre | ✅ Excelente |
+
+#### 3.2.3 Operaciones Clave de las CNN
+
+##### 3.2.3.1 Convolución: Extracción de Características
+
+**Concepto:** Aplicar **filtros/kernels** deslizantes sobre la imagen para detectar patrones locales.
+
+**Filtros para Detección de Características:**
+
+```python
+# Ejemplo: Filtro detector de bordes verticales (Kernel 3×3)
+kernel_vertical = np.array([
+    [-1, 0, 1],
+    [-1, 0, 1],
+    [-1, 0, 1]
+])
+
+# Filtro detector de bordes horizontales
+kernel_horizontal = np.array([
+    [-1, -1, -1],
+    [ 0,  0,  0],
+    [ 1,  1,  1]
+])
+
+# Aplicar convolución
+output = cv2.filter2D(image, -1, kernel_vertical)
+```
+
+**Ejemplos de Características Detectadas:**
+
+- **Capa 1 (Low-level):** Bordes, esquinas, líneas
+- **Capa 2 (Mid-level):** Texturas, formas simples
+- **Capa 3 (High-level):** Partes de objetos (ojos, ruedas)
+- **Capa 4+ (Semantic):** Objetos completos (caras, autos)
+
+**Parámetros de Convolución:**
+
+**Stride (Paso):**
+- **Definición:** Cuántos píxeles se desplaza el kernel en cada paso
+- **Stride=1:** Movimiento de 1 píxel (más detalle, más cómputo)
+- **Stride=2:** Movimiento de 2 píxeles (reduce tamaño a la mitad)
+
+```python
+# Ejemplo de stride
+conv_stride1 = nn.Conv2d(in_channels=3, out_channels=64, 
+                         kernel_size=3, stride=1)  # Output: W/1
+conv_stride2 = nn.Conv2d(in_channels=3, out_channels=64, 
+                         kernel_size=3, stride=2)  # Output: W/2
+```
+
+**Padding (Relleno):**
+- **Problema:** La convolución reduce el tamaño de la imagen
+- **Solución:** Agregar píxeles extra en los bordes
+- **Tipos:**
+  - **Valid:** Sin padding (tamaño se reduce)
+  - **Same:** Padding para mantener dimensiones
+  - **Full:** Padding máximo
+
+```python
+# Ejemplo de padding
+conv_no_padding = nn.Conv2d(3, 64, kernel_size=3, padding=0)  # Valid
+conv_with_padding = nn.Conv2d(3, 64, kernel_size=3, padding=1)  # Same
+
+# Cálculo de tamaño de salida
+# Output_size = (Input_size + 2×Padding - Kernel_size) / Stride + 1
+```
+
+**Ilustración del Proceso de Convolución:**
+
+```
+Input (5×5):          Kernel (3×3):       Output (3×3):
+[1 2 3 4 5]          [1 0 -1]            [a b c]
+[6 7 8 9 0]          [1 0 -1]            [d e f]
+[1 2 3 4 5]     ×    [1 0 -1]      →     [g h i]
+[6 7 8 9 0]
+[1 2 3 4 5]
+
+Stride=1, Padding=0
+```
+
+##### 3.2.3.2 Pooling (Submuestreo): Reducción de Dimensionalidad
+
+**Función:** Reducir tamaño espacial manteniendo información importante.
+
+**Max Pooling vs Average Pooling:**
+
+```python
+# Ejemplo con matriz 4×4 y pooling 2×2
+
+Input:                  Max Pooling (2×2):    Average Pooling (2×2):
+[1  2  | 3  4]         [6 | 8]               [3.5 | 5.5]
+[5  6  | 7  8]    →    ----+----        →    -----+-----
+-------+-------         [10| 12]              [7.5 | 9.5]
+[1  2  | 3  4]
+[9  10 | 11 12]
+```
+
+**Max Pooling:**
+- Toma el **valor máximo** de cada región
+- **Ventaja:** Preserva características más fuertes (bordes, activaciones)
+- **Uso:** Más común en CNN modernas
+
+**Average Pooling:**
+- Toma el **promedio** de cada región
+- **Ventaja:** Reduce ruido, suaviza características
+- **Uso:** Última capa antes de clasificación
+
+**Código:**
+```python
+import torch.nn as nn
+
+# Max Pooling 2×2
+max_pool = nn.MaxPool2d(kernel_size=2, stride=2)
+
+# Average Pooling 2×2
+avg_pool = nn.AvgPool2d(kernel_size=2, stride=2)
+
+# Aplicar
+output = max_pool(input_tensor)  # Reduce tamaño a la mitad
+```
+
+**Beneficios del Pooling:**
+- ✅ **Reducción de dimensionalidad:** Menos parámetros, más eficiencia
+- ✅ **Invarianza a traslaciones pequeñas:** Objeto se detecta aunque se mueva ligeramente
+- ✅ **Campo receptivo más amplio:** Cada neurona "ve" más área de la imagen
+- ✅ **Control de sobreajuste:** Regularización implícita
+
+##### 3.2.3.3 Flattening: Transición a Clasificación
+
+**Concepto:** Convertir feature maps 3D en vector 1D para capas densas finales.
+
+```python
+# Después de múltiples Conv + Pool
+feature_maps_shape = (batch, 512, 7, 7)  # 512 canales de 7×7
+
+# Flattening
+flattened = feature_maps.view(batch, -1)  # (batch, 25088)
+
+# Conectar a capas densas
+fc1 = nn.Linear(25088, 4096)  # Fully connected
+fc2 = nn.Linear(4096, 1000)   # Output classes
+```
+
+**Arquitectura Completa CNN:**
+
+```
+Input Image (640×640×3)
+         ↓
+    [Conv + ReLU + Pool]  →  320×320×64
+         ↓
+    [Conv + ReLU + Pool]  →  160×160×128
+         ↓
+    [Conv + ReLU + Pool]  →  80×80×256
+         ↓
+    [Conv + ReLU + Pool]  →  40×40×512
+         ↓
+      Flatten              →  819,200
+         ↓
+    Fully Connected       →  4096
+         ↓
+    Fully Connected       →  9 classes
+         ↓
+      Softmax              →  Probabilidades
+```
+
+#### 3.2.4 Evolución de Arquitecturas CNN Famosas
+
+##### LeNet-5 (1998) - Pionera
+- **Autor:** Yann LeCun
+- **Propósito:** Reconocimiento de dígitos manuscritos (MNIST)
+- **Arquitectura:** 7 capas (Conv → Pool → Conv → Pool → FC)
+- **Logro:** 99.2% accuracy en MNIST
+- **Impacto:** Demostró viabilidad de CNNs
+
+```
+Input (32×32) → Conv(6) → Pool → Conv(16) → Pool → FC(120) → FC(84) → Output(10)
+```
+
+##### AlexNet (2012) - Revolución
+- **Autores:** Alex Krizhevsky, Ilya Sutskever, Geoffrey Hinton
+- **Evento:** Ganó ImageNet Challenge 2012
+- **Innovaciones:**
+  - ReLU activation (vs Sigmoid/Tanh)
+  - Dropout para regularización
+  - Data augmentation
+  - GPU acceleration
+- **Arquitectura:** 8 capas (5 Conv + 3 FC)
+- **Parámetros:** 60 millones
+- **Logro:** Top-5 error 15.3% (vs 26% del segundo lugar)
+
+```
+Input (227×227×3) → Conv(96) → Pool → Conv(256) → Pool → 
+Conv(384) → Conv(384) → Conv(256) → Pool → FC(4096) → FC(4096) → Output(1000)
+```
+
+##### VGG16 (2014) - Simplicidad y Profundidad
+- **Autores:** Karen Simonyan, Andrew Zisserman (Oxford)
+- **Filosofía:** Redes muy profundas con filtros pequeños (3×3)
+- **Arquitectura:** 16 capas con pesos
+  - 13 capas convolucionales (3×3 kernels)
+  - 3 capas fully connected
+  - 5 bloques de max pooling
+- **Parámetros:** 138 millones
+- **Logro:** Top-5 error 7.3%
+
+```
+Block 1: Conv(64)×2 → Pool
+Block 2: Conv(128)×2 → Pool
+Block 3: Conv(256)×3 → Pool
+Block 4: Conv(512)×3 → Pool
+Block 5: Conv(512)×3 → Pool
+FC: 4096 → 4096 → 1000
+```
+
+##### YOLO (2015-2024) - Detección en Tiempo Real
+- **Evolución:** YOLOv1 → YOLOv2 → YOLOv3 → ... → YOLOv11
+- **Innovación:** Detección de objetos en una sola pasada (vs R-CNN)
+- **YOLOv11 (usado en este proyecto):**
+  - C2f modules (Cross Stage Partial bottleneck)
+  - Spatial Pyramid Pooling
+  - Path Aggregation Network
+  - >100 FPS en GPU moderna
+  - mAP@0.5 >95% en datasets específicos
+
+**Comparación de Arquitecturas:**
+
+| Modelo | Año | Capas | Parámetros | Top-5 Error | Innovación Clave |
+|--------|-----|-------|------------|-------------|------------------|
+| LeNet-5 | 1998 | 7 | 60K | - | Primera CNN práctica |
+| AlexNet | 2012 | 8 | 60M | 15.3% | ReLU, Dropout, GPU |
+| VGG16 | 2014 | 16 | 138M | 7.3% | Redes profundas simples |
+| ResNet | 2015 | 152 | 60M | 3.6% | Skip connections |
+| YOLO | 2015+ | Variable | 1-100M | - | Detección tiempo real |
+
+#### 3.2.5 Aplicaciones Reales de las CNN
+
+##### 1. Reconocimiento Facial
+- **Empresas:** Facebook (DeepFace), Apple (Face ID)
+- **Tecnología:** CNN + Face embeddings
+- **Precisión:** >99% en condiciones controladas
+- **Casos de uso:**
+  - Desbloqueo de dispositivos
+  - Seguridad y vigilancia
+  - Etiquetado automático en fotos
+  - Control de acceso
+
+##### 2. Diagnóstico Médico
+- **Rayos X y Tomografías:**
+  - Detección de neumonía (>95% accuracy)
+  - Identificación de tumores cerebrales
+  - Clasificación de fracturas óseas
+- **Dermatología:**
+  - Detección de melanoma
+  - Clasificación de lesiones cutáneas
+- **Oftalmología:**
+  - Detección de retinopatía diabética
+  - Glaucoma y cataratas
+- **Impacto:** Asistencia a radiólogos, diagnósticos más rápidos
+
+##### 3. Vehículos Autónomos
+- **Detección de Objetos:**
+  - Peatones, ciclistas, vehículos
+  - Señales de tráfico
+  - Semáforos
+  - Líneas de carril
+- **Segmentación Semántica:**
+  - Carretera vs acera
+  - Obstáculos en el camino
+- **Empresas:** Tesla (Autopilot), Waymo, Uber
+- **Tecnología:** Multi-cámara CNN + Sensor fusion
+
+##### 4. Otras Aplicaciones
+
+**Agricultura:**
+- Detección de plagas y enfermedades en cultivos
+- Clasificación de calidad de frutas
+- Monitoreo de crecimiento con drones
+
+**Retail (Este Proyecto):**
+- Sistema POS con detección automática de productos
+- Análisis de comportamiento de clientes
+- Control de inventario visual
+
+**Seguridad:**
+- Detección de armas en cámaras de seguridad
+- Reconocimiento de placas vehiculares
+- Monitoreo de perímetros
+
+**Manufactura:**
+- Control de calidad visual
+- Detección de defectos en productos
+- Inspección automatizada
+
+#### Capas Convolucionales (Resumen Técnico)
+- **Función:** Extracción de características locales mediante filtros aprendibles
+- **Operación:** Convolución con kernels de tamaño fijo (típicamente 3×3, 5×5)
+- **Parámetros:** Stride (paso) y Padding (relleno)
+- **Output:** Feature maps de diferentes niveles jerárquicos
+
+#### Pooling (Resumen Técnico)
+- **Función:** Reducción de dimensionalidad espacial
+- **Tipos:** Max pooling (valor máximo), Average pooling (promedio)
+- **Beneficio:** Invarianza a pequeñas traslaciones y rotaciones
+- **Impacto:** Reduce parámetros y cómputo en capas siguientes
+
+#### Capas Fully Connected (Resumen Técnico)
+- **Función:** Clasificación final basada en features extraídas
+- **Operación:** Combinación lineal + función de activación (ReLU, Softmax)
+- **Input:** Vector flattened de feature maps
+- **Output:** Probabilidades por clase (detección/clasificación)
 
 ### 3.3 YOLO (You Only Look Once)
 

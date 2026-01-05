@@ -19,6 +19,7 @@ from tkinter import ttk, messagebox
 import threading
 from database import db_manager
 import logging
+from config import CAMERA_CONFIG
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -30,6 +31,88 @@ class MenuPrincipal:
     def __init__(self):
         self.seleccion = None
         self.ventana_activa = True
+
+    def _default_camera_ip(self) -> str:
+        """Extrae una IP (si es posible) desde CAMERA_CONFIG['source']."""
+        src = str(CAMERA_CONFIG.get('source', '') or '')
+        if not src:
+            return ''
+        if src.startswith('http://') or src.startswith('https://'):
+            # http(s)://IP:PORT/...
+            try:
+                rest = src.split('://', 1)[1]
+                hostport = rest.split('/', 1)[0]
+                host = hostport.split(':', 1)[0]
+                return host
+            except Exception:
+                return ''
+        # Si está como IP:PORT o IP
+        return src.split('/', 1)[0].split(':', 1)[0]
+
+    def _prompt_camera_source(self, window_name: str) -> str | None:
+        """Solicita URL/IP de cámara dentro de la misma ventana OpenCV.
+
+        Returns:
+            str: Texto ingresado (o default si Enter vacío)
+            None: si el usuario cancela con ESC
+        """
+        default_ip = self._default_camera_ip()
+        typed = ""
+
+        while True:
+            frame = np.zeros((700, 900, 3), dtype=np.uint8)
+
+            # Fondo
+            for i in range(700):
+                color = int(15 + (i / 700) * 25)
+                cv2.line(frame, (0, i), (900, i), (color, color, color + 8), 1)
+
+            # Banner
+            cv2.rectangle(frame, (0, 0), (900, 110), (40, 40, 60), -1)
+            cv2.rectangle(frame, (0, 105), (900, 115), (0, 255, 150), -1)
+            cv2.putText(frame, "CONFIGURAR CAMARA", (230, 70),
+                        cv2.FONT_HERSHEY_DUPLEX, 1.6, (100, 255, 200), 3, cv2.LINE_AA)
+
+            # Caja
+            cv2.rectangle(frame, (120, 210), (780, 500), (55, 55, 55), -1)
+            cv2.rectangle(frame, (120, 210), (780, 500), (120, 120, 120), 2)
+
+            cv2.putText(frame, "Ingrese SOLO la IP de la camara:", (150, 260),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (230, 230, 230), 2, cv2.LINE_AA)
+
+            # Input box
+            cv2.rectangle(frame, (150, 300), (750, 360), (30, 30, 30), -1)
+            cv2.rectangle(frame, (150, 300), (750, 360), (0, 255, 150), 2)
+
+            display_text = typed if typed else f"(Enter = default: {default_ip})"
+            color = (255, 255, 255) if typed else (170, 170, 170)
+            # Mostrar solo el final si es muy largo
+            if len(display_text) > 60:
+                display_text = "..." + display_text[-57:]
+            cv2.putText(frame, display_text, (165, 340),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2, cv2.LINE_AA)
+
+            # Ayuda
+            cv2.putText(frame, "Ej: 172.25.235.192   (se usara http://IP:8080/video)", (150, 410),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.55, (200, 200, 200), 1, cv2.LINE_AA)
+            cv2.putText(frame, "ENTER = continuar   ESC = volver", (285, 460),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.65, (150, 255, 150), 2, cv2.LINE_AA)
+
+            cv2.imshow(window_name, frame)
+            key = cv2.waitKey(50) & 0xFF
+
+            if key == 27:  # ESC
+                return None
+            if key in (10, 13):  # ENTER
+                return typed.strip() if typed.strip() else str(default_ip)
+            if key in (8, 127):  # BACKSPACE
+                typed = typed[:-1]
+                continue
+
+            # Caracteres imprimibles
+            if 32 <= key <= 126:
+                if len(typed) < 120:
+                    typed += chr(key)
         
     def mostrar(self):
         """Muestra el menú principal usando OpenCV"""
@@ -149,7 +232,10 @@ class MenuPrincipal:
                 self.seleccion = 'admin'
                 logger.info("🔧 Accediendo a panel de administración...")
             elif key == ord('i') or key == ord('I'):
-                self.seleccion = 'iniciar'
+                camera_text = self._prompt_camera_source(window_name)
+                if camera_text is None:
+                    continue
+                self.seleccion = ('iniciar', camera_text)
                 logger.info("🚀 Iniciando sistema POS...")
             elif key == 27:  # ESC
                 self.seleccion = 'salir'
